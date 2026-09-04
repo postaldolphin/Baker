@@ -1,0 +1,303 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<title>Arty baker — Inventory</title>
+<style>
+*{box-sizing:border-box}body{margin:0;background:#f4f1ec;color:#292622;font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif}
+.app{max-width:560px;margin:auto;min-height:100vh;background:#fff;padding-bottom:76px}
+header{padding:18px 15px 13px;border-bottom:1px solid #eee;position:sticky;top:0;background:#fff;z-index:5}
+.logo{font-size:23px;font-weight:800}.sub,.meta{font-size:12px;color:#888}.row{display:flex;gap:8px;margin-top:11px}.row>*{flex:1}
+main{padding:15px}section{display:none}section.show{display:block}h2{font-size:20px;margin:4px 0 14px}
+select,input,textarea,button{font:inherit}select,input,textarea{width:100%;padding:11px;border:1px solid #ddd;border-radius:12px;background:#fff}
+textarea{min-height:90px}button{border:0;border-radius:11px;padding:10px 12px;background:#eee}
+.primary{background:#292622;color:#fff;width:100%;margin-top:10px}.card,.notice{border:1px solid #e9e5df;border-radius:16px;padding:13px;margin:9px 0}
+.item{display:flex;justify-content:space-between;gap:10px;align-items:center;cursor:pointer}.name{font-weight:700}.stock{font-size:18px;font-weight:800}
+.badge{font-size:11px;padding:4px 7px;border-radius:999px}.ok{background:#e8f5eb;color:#28703b}.low{background:#fff4cb;color:#826600}.out{background:#ffe7e4;color:#a52e25}
+.controls{display:flex;gap:7px;margin-top:10px}.controls button{flex:1}.tabs{display:flex;gap:6px;overflow:auto;margin:10px 0}.tab{white-space:nowrap;border-radius:999px}.tab.active{background:#292622;color:#fff}
+.bottom{position:fixed;bottom:0;left:50%;transform:translateX(-50%);width:min(560px,100%);background:#fff;border-top:1px solid #eee;padding:7px;display:grid;grid-template-columns:repeat(5,1fr);z-index:6}
+.nav{background:#fff;font-size:10px;padding:7px 2px;color:#777}.nav.active{color:#111;font-weight:700}
+.modal{display:none;position:fixed;inset:0;background:#0007;align-items:flex-end;z-index:20}.modal.show{display:flex}.sheet{background:#fff;width:min(560px,100%);margin:auto;padding:19px;border-radius:22px 22px 0 0;max-height:91vh;overflow:auto}.close{float:right;border-radius:50%}
+label{display:block;font-size:13px;font-weight:600;margin-top:10px}.danger{background:#ffe8e5;color:#9d2d24;width:100%;margin-top:8px}
+</style>
+</head>
+<body>
+<div class="app">
+<header>
+  <div class="logo">🥐 Arty baker</div>
+  <div class="sub">Ingredients & Supplies Inventory</div>
+  <div class="row">
+    <select id="loc"></select>
+    <select id="staff"><option>Romain</option><option>Suzzane</option></select>
+  </div>
+</header>
+
+<main>
+<section id="home" class="show">
+  <h2>📢 Announcements</h2>
+  <div id="ann"></div>
+  <button class="primary" onclick="announcementForm()">＋ Add Announcement</button>
+  <h2 style="margin-top:25px">Quick Overview</h2>
+  <div class="card">🔴 <b id="ordersN">0</b> items need ordering</div>
+  <div class="card">🟡 <b id="lowN">0</b> items running low</div>
+</section>
+
+<section id="inventory">
+  <h2>📦 Inventory</h2>
+  <div class="meta">Location: <b id="where"></b></div>
+  <div class="tabs">
+    <button class="tab active" onclick="setCat('all',this)">All</button>
+    <button class="tab" onclick="setCat('Ingredients',this)">Ingredients</button>
+    <button class="tab" onclick="setCat('Supplies',this)">Supplies</button>
+    <button class="tab" onclick="setCat('Frozen Pastry',this)">Frozen Pastry</button>
+    <button class="tab" onclick="setCat('Order',this)">🔴 Order</button>
+  </div>
+  <input id="search" placeholder="🔎 Search items" oninput="render()">
+  <div class="meta" style="margin:9px 0">Unit · Tap an item to edit its settings for this location.</div>
+  <div id="list"></div>
+  <button class="primary" onclick="itemForm()">＋ Add Item</button>
+</section>
+
+<section id="orders"><h2>🛒 Orders</h2><div id="orderList"></div></section>
+<section id="history"><h2>📋 History</h2><div id="hist"></div></section>
+
+<section id="more">
+  <h2>⚙️ More</h2>
+  <div class="card"><b>👤 Staff</b><div class="meta">Initial staff: Romain, Suzzane</div><button class="primary" onclick="staffForm()">＋ Add Staff</button></div>
+  <div class="card"><b>🗄️ Archived Items</b><div class="meta">Archived items stay in the records and can be restored.</div><button class="primary" onclick="archivedForm()">View Archived Items</button></div>
+  <div class="card"><b>🔄 Stock Transfer</b><div class="meta">Move stock between Sandymount, Dalkey, Bath and Warehouse.</div><button class="primary" onclick="transferForm()">＋ Record Transfer</button></div>
+</section>
+</main>
+
+<nav class="bottom">
+<button class="nav active" onclick="show('home',this)">🏠<br>Home</button>
+<button class="nav" onclick="show('inventory',this)">📦<br>Inventory</button>
+<button class="nav" onclick="show('orders',this)">🛒<br>Orders</button>
+<button class="nav" onclick="show('history',this)">📋<br>History</button>
+<button class="nav" onclick="show('more',this)">⚙️<br>More</button>
+</nav>
+</div>
+
+<div class="modal" id="modal"><div class="sheet"><button class="close" onclick="closeM()">×</button><h3 id="mt"></h3><div id="mb"></div></div></div>
+
+<script>
+let data=[{"name":"44% Chocolate Drop","cat":"Ingredients","archived":false,"locations":{"Sandymount":{"stock":5,"reorder":1,"orderQty":5},"Dalkey":{"stock":5,"reorder":1,"orderQty":5},"Bath":{"stock":5,"reorder":1,"orderQty":5},"Warehouse":{"stock":5,"reorder":1,"orderQty":5}}},{"name":"Almond Croissant","cat":"Ingredients","archived":false,"locations":{"Sandymount":{"stock":5,"reorder":1,"orderQty":5},"Dalkey":{"stock":5,"reorder":1,"orderQty":5},"Bath":{"stock":5,"reorder":1,"orderQty":5},"Warehouse":{"stock":5,"reorder":1,"orderQty":5}}},{"name":"Almond Powder","cat":"Ingredients","archived":false,"locations":{"Sandymount":{"stock":5,"reorder":1,"orderQty":5},"Dalkey":{"stock":5,"reorder":1,"orderQty":5},"Bath":{"stock":5,"reorder":1,"orderQty":5},"Warehouse":{"stock":5,"reorder":1,"orderQty":5}}},{"name":"Apron","cat":"Supplies","archived":false,"locations":{"Sandymount":{"stock":5,"reorder":1,"orderQty":5},"Dalkey":{"stock":5,"reorder":1,"orderQty":5},"Bath":{"stock":5,"reorder":1,"orderQty":5},"Warehouse":{"stock":5,"reorder":1,"orderQty":5}}},{"name":"Babka","cat":"Ingredients","archived":false,"locations":{"Sandymount":{"stock":5,"reorder":1,"orderQty":5},"Dalkey":{"stock":5,"reorder":1,"orderQty":5},"Bath":{"stock":5,"reorder":1,"orderQty":5},"Warehouse":{"stock":5,"reorder":1,"orderQty":5}}},{"name":"Baking Parchment","cat":"Supplies","archived":false,"locations":{"Sandymount":{"stock":5,"reorder":1,"orderQty":5},"Dalkey":{"stock":5,"reorder":1,"orderQty":5},"Bath":{"stock":5,"reorder":1,"orderQty":5},"Warehouse":{"stock":5,"reorder":1,"orderQty":5}}},{"name":"Baking Powder","cat":"Ingredients","archived":false,"locations":{"Sandymount":{"stock":5,"reorder":1,"orderQty":5},"Dalkey":{"stock":5,"reorder":1,"orderQty":5},"Bath":{"stock":5,"reorder":1,"orderQty":5},"Warehouse":{"stock":5,"reorder":1,"orderQty":5}}},{"name":"Banana","cat":"Ingredients","archived":false,"locations":{"Sandymount":{"stock":5,"reorder":1,"orderQty":5},"Dalkey":{"stock":5,"reorder":1,"orderQty":5},"Bath":{"stock":5,"reorder":1,"orderQty":5},"Warehouse":{"stock":5,"reorder":1,"orderQty":5}}},{"name":"Basil","cat":"Ingredients","archived":false,"locations":{"Sandymount":{"stock":5,"reorder":1,"orderQty":5},"Dalkey":{"stock":5,"reorder":1,"orderQty":5},"Bath":{"stock":5,"reorder":1,"orderQty":5},"Warehouse":{"stock":5,"reorder":1,"orderQty":5}}},{"name":"Bechamel","cat":"Ingredients","archived":false,"locations":{"Sandymount":{"stock":5,"reorder":1,"orderQty":5},"Dalkey":{"stock":5,"reorder":1,"orderQty":5},"Bath":{"stock":5,"reorder":1,"orderQty":5},"Warehouse":{"stock":5,"reorder":1,"orderQty":5}}},{"name":"Black Bags","cat":"Supplies","archived":false,"locations":{"Sandymount":{"stock":5,"reorder":1,"orderQty":5},"Dalkey":{"stock":5,"reorder":1,"orderQty":5},"Bath":{"stock":5,"reorder":1,"orderQty":5},"Warehouse":{"stock":5,"reorder":1,"orderQty":5}}},{"name":"Black Gloves","cat":"Supplies","archived":false,"locations":{"Sandymount":{"stock":5,"reorder":1,"orderQty":5},"Dalkey":{"stock":5,"reorder":1,"orderQty":5},"Bath":{"stock":5,"reorder":1,"orderQty":5},"Warehouse":{"stock":5,"reorder":1,"orderQty":5}}},{"name":"Blackberries","cat":"Ingredients","archived":false,"locations":{"Sandymount":{"stock":5,"reorder":1,"orderQty":5},"Dalkey":{"stock":5,"reorder":1,"orderQty":5},"Bath":{"stock":5,"reorder":1,"orderQty":5},"Warehouse":{"stock":5,"reorder":1,"orderQty":5}}},{"name":"Blue Cloth","cat":"Supplies","archived":false,"locations":{"Sandymount":{"stock":5,"reorder":1,"orderQty":5},"Dalkey":{"stock":5,"reorder":1,"orderQty":5},"Bath":{"stock":5,"reorder":1,"orderQty":5},"Warehouse":{"stock":5,"reorder":1,"orderQty":5}}},{"name":"Blue Kitchen Paper","cat":"Supplies","archived":false,"locations":{"Sandymount":{"stock":5,"reorder":1,"orderQty":5},"Dalkey":{"stock":5,"reorder":1,"orderQty":5},"Bath":{"stock":5,"reorder":1,"orderQty":5},"Warehouse":{"stock":5,"reorder":1,"orderQty":5}}},{"name":"Blue Mop Heads","cat":"Supplies","archived":false,"locations":{"Sandymount":{"stock":5,"reorder":1,"orderQty":5},"Dalkey":{"stock":5,"reorder":1,"orderQty":5},"Bath":{"stock":5,"reorder":1,"orderQty":5},"Warehouse":{"stock":5,"reorder":1,"orderQty":5}}},{"name":"Blue Roll","cat":"Supplies","archived":false,"locations":{"Sandymount":{"stock":5,"reorder":1,"orderQty":5},"Dalkey":{"stock":5,"reorder":1,"orderQty":5},"Bath":{"stock":5,"reorder":1,"orderQty":5},"Warehouse":{"stock":5,"reorder":1,"orderQty":5}}},{"name":"Blueberries","cat":"Ingredients","archived":false,"locations":{"Sandymount":{"stock":5,"reorder":1,"orderQty":5},"Dalkey":{"stock":5,"reorder":1,"orderQty":5},"Bath":{"stock":5,"reorder":1,"orderQty":5},"Warehouse":{"stock":5,"reorder":1,"orderQty":5}}},{"name":"Breakfast baguette","cat":"Ingredients","archived":false,"locations":{"Sandymount":{"stock":5,"reorder":1,"orderQty":5},"Dalkey":{"stock":5,"reorder":1,"orderQty":5},"Bath":{"stock":5,"reorder":1,"orderQty":5},"Warehouse":{"stock":5,"reorder":1,"orderQty":5}}},{"name":"Brown Sugar","cat":"Ingredients","archived":false,"locations":{"Sandymount":{"stock":5,"reorder":1,"orderQty":5},"Dalkey":{"stock":5,"reorder":1,"orderQty":5},"Bath":{"stock":5,"reorder":1,"orderQty":5},"Warehouse":{"stock":5,"reorder":1,"orderQty":5}}},{"name":"Butter","cat":"Ingredients","archived":false,"locations":{"Sandymount":{"stock":5,"reorder":1,"orderQty":5},"Dalkey":{"stock":5,"reorder":1,"orderQty":5},"Bath":{"stock":5,"reorder":1,"orderQty":5},"Warehouse":{"stock":5,"reorder":1,"orderQty":5}}},{"name":"Callebaut Chocolate Sticks","cat":"Ingredients","archived":false,"locations":{"Sandymount":{"stock":5,"reorder":1,"orderQty":5},"Dalkey":{"stock":5,"reorder":1,"orderQty":5},"Bath":{"stock":5,"reorder":1,"orderQty":5},"Warehouse":{"stock":5,"reorder":1,"orderQty":5}}},{"name":"Caster Sugar","cat":"Ingredients","archived":false,"locations":{"Sandymount":{"stock":5,"reorder":1,"orderQty":5},"Dalkey":{"stock":5,"reorder":1,"orderQty":5},"Bath":{"stock":5,"reorder":1,"orderQty":5},"Warehouse":{"stock":5,"reorder":1,"orderQty":5}}},{"name":"Chef Jacket","cat":"Supplies","archived":false,"locations":{"Sandymount":{"stock":5,"reorder":1,"orderQty":5},"Dalkey":{"stock":5,"reorder":1,"orderQty":5},"Bath":{"stock":5,"reorder":1,"orderQty":5},"Warehouse":{"stock":5,"reorder":1,"orderQty":5}}},{"name":"Chef Towel","cat":"Supplies","archived":false,"locations":{"Sandymount":{"stock":5,"reorder":1,"orderQty":5},"Dalkey":{"stock":5,"reorder":1,"orderQty":5},"Bath":{"stock":5,"reorder":1,"orderQty":5},"Warehouse":{"stock":5,"reorder":1,"orderQty":5}}},{"name":"Cinnamon Glaze","cat":"Ingredients","archived":false,"locations":{"Sandymount":{"stock":5,"reorder":1,"orderQty":5},"Dalkey":{"stock":5,"reorder":1,"orderQty":5},"Bath":{"stock":5,"reorder":1,"orderQty":5},"Warehouse":{"stock":5,"reorder":1,"orderQty":5}}},{"name":"Cinnamon Powder","cat":"Ingredients","archived":false,"locations":{"Sandymount":{"stock":5,"reorder":1,"orderQty":5},"Dalkey":{"stock":5,"reorder":1,"orderQty":5},"Bath":{"stock":5,"reorder":1,"orderQty":5},"Warehouse":{"stock":5,"reorder":1,"orderQty":5}}},{"name":"Clear Bin Bags","cat":"Supplies","archived":false,"locations":{"Sandymount":{"stock":5,"reorder":1,"orderQty":5},"Dalkey":{"stock":5,"reorder":1,"orderQty":5},"Bath":{"stock":5,"reorder":1,"orderQty":5},"Warehouse":{"stock":5,"reorder":1,"orderQty":5}}},{"name":"Cling Film","cat":"Supplies","archived":false,"locations":{"Sandymount":{"stock":5,"reorder":1,"orderQty":5},"Dalkey":{"stock":5,"reorder":1,"orderQty":5},"Bath":{"stock":5,"reorder":1,"orderQty":5},"Warehouse":{"stock":5,"reorder":1,"orderQty":5}}},{"name":"Cocoa Powder","cat":"Ingredients","archived":false,"locations":{"Sandymount":{"stock":5,"reorder":1,"orderQty":5},"Dalkey":{"stock":5,"reorder":1,"orderQty":5},"Bath":{"stock":5,"reorder":1,"orderQty":5},"Warehouse":{"stock":5,"reorder":1,"orderQty":5}}},{"name":"Cookie","cat":"Ingredients","archived":false,"locations":{"Sandymount":{"stock":5,"reorder":1,"orderQty":5},"Dalkey":{"stock":5,"reorder":1,"orderQty":5},"Bath":{"stock":5,"reorder":1,"orderQty":5},"Warehouse":{"stock":5,"reorder":1,"orderQty":5}}},{"name":"Corn Flour","cat":"Ingredients","archived":false,"locations":{"Sandymount":{"stock":5,"reorder":1,"orderQty":5},"Dalkey":{"stock":5,"reorder":1,"orderQty":5},"Bath":{"stock":5,"reorder":1,"orderQty":5},"Warehouse":{"stock":5,"reorder":1,"orderQty":5}}},{"name":"Croque Monsieur Bread","cat":"Ingredients","archived":false,"locations":{"Sandymount":{"stock":5,"reorder":1,"orderQty":5},"Dalkey":{"stock":5,"reorder":1,"orderQty":5},"Bath":{"stock":5,"reorder":1,"orderQty":5},"Warehouse":{"stock":5,"reorder":1,"orderQty":5}}},{"name":"Cubed Chorizo","cat":"Ingredients","archived":false,"locations":{"Sandymount":{"stock":5,"reorder":1,"orderQty":5},"Dalkey":{"stock":5,"reorder":1,"orderQty":5},"Bath":{"stock":5,"reorder":1,"orderQty":5},"Warehouse":{"stock":5,"reorder":1,"orderQty":5}}},{"name":"Dark chocolate chips","cat":"Ingredients","archived":false,"locations":{"Sandymount":{"stock":5,"reorder":1,"orderQty":5},"Dalkey":{"stock":5,"reorder":1,"orderQty":5},"Bath":{"stock":5,"reorder":1,"orderQty":5},"Warehouse":{"stock":5,"reorder":1,"orderQty":5}}},{"name":"Dried Yeast","cat":"Ingredients","archived":false,"locations":{"Sandymount":{"stock":5,"reorder":1,"orderQty":5},"Dalkey":{"stock":5,"reorder":1,"orderQty":5},"Bath":{"stock":5,"reorder":1,"orderQty":5},"Warehouse":{"stock":5,"reorder":1,"orderQty":5}}},{"name":"Dry Yeast","cat":"Ingredients","archived":false,"locations":{"Sandymount":{"stock":5,"reorder":1,"orderQty":5},"Dalkey":{"stock":5,"reorder":1,"orderQty":5},"Bath":{"stock":5,"reorder":1,"orderQty":5},"Warehouse":{"stock":5,"reorder":1,"orderQty":5}}},{"name":"Egg White","cat":"Ingredients","archived":false,"locations":{"Sandymount":{"stock":5,"reorder":1,"orderQty":5},"Dalkey":{"stock":5,"reorder":1,"orderQty":5},"Bath":{"stock":5,"reorder":1,"orderQty":5},"Warehouse":{"stock":5,"reorder":1,"orderQty":5}}},{"name":"Egg Yolk","cat":"Ingredients","archived":false,"locations":{"Sandymount":{"stock":5,"reorder":1,"orderQty":5},"Dalkey":{"stock":5,"reorder":1,"orderQty":5},"Bath":{"stock":5,"reorder":1,"orderQty":5},"Warehouse":{"stock":5,"reorder":1,"orderQty":5}}},{"name":"Emergency Butter taquid V","cat":"Ingredients","archived":false,"locations":{"Sandymount":{"stock":5,"reorder":1,"orderQty":5},"Dalkey":{"stock":5,"reorder":1,"orderQty":5},"Bath":{"stock":5,"reorder":1,"orderQty":5},"Warehouse":{"stock":5,"reorder":1,"orderQty":5}}},{"name":"Emergency Flour","cat":"Ingredients","archived":false,"locations":{"Sandymount":{"stock":5,"reorder":1,"orderQty":5},"Dalkey":{"stock":5,"reorder":1,"orderQty":5},"Bath":{"stock":5,"reorder":1,"orderQty":5},"Warehouse":{"stock":5,"reorder":1,"orderQty":5}}},{"name":"Emmental Grated","cat":"Ingredients","archived":false,"locations":{"Sandymount":{"stock":5,"reorder":1,"orderQty":5},"Dalkey":{"stock":5,"reorder":1,"orderQty":5},"Bath":{"stock":5,"reorder":1,"orderQty":5},"Warehouse":{"stock":5,"reorder":1,"orderQty":5}}},{"name":"Emmental Sliced Cheese","cat":"Ingredients","archived":false,"locations":{"Sandymount":{"stock":5,"reorder":1,"orderQty":5},"Dalkey":{"stock":5,"reorder":1,"orderQty":5},"Bath":{"stock":5,"reorder":1,"orderQty":5},"Warehouse":{"stock":5,"reorder":1,"orderQty":5}}},{"name":"Energy Ball","cat":"Ingredients","archived":false,"locations":{"Sandymount":{"stock":5,"reorder":1,"orderQty":5},"Dalkey":{"stock":5,"reorder":1,"orderQty":5},"Bath":{"stock":5,"reorder":1,"orderQty":5},"Warehouse":{"stock":5,"reorder":1,"orderQty":5}}},{"name":"Fairy Liquid","cat":"Supplies","archived":false,"locations":{"Sandymount":{"stock":5,"reorder":1,"orderQty":5},"Dalkey":{"stock":5,"reorder":1,"orderQty":5},"Bath":{"stock":5,"reorder":1,"orderQty":5},"Warehouse":{"stock":5,"reorder":1,"orderQty":5}}},{"name":"Floor Cleaner","cat":"Supplies","archived":false,"locations":{"Sandymount":{"stock":5,"reorder":1,"orderQty":5},"Dalkey":{"stock":5,"reorder":1,"orderQty":5},"Bath":{"stock":5,"reorder":1,"orderQty":5},"Warehouse":{"stock":5,"reorder":1,"orderQty":5}}},{"name":"Flour","cat":"Ingredients","archived":false,"locations":{"Sandymount":{"stock":5,"reorder":1,"orderQty":5},"Dalkey":{"stock":5,"reorder":1,"orderQty":5},"Bath":{"stock":5,"reorder":1,"orderQty":5},"Warehouse":{"stock":5,"reorder":1,"orderQty":5}}},{"name":"Food Colours","cat":"Ingredients","archived":false,"locations":{"Sandymount":{"stock":5,"reorder":1,"orderQty":5},"Dalkey":{"stock":5,"reorder":1,"orderQty":5},"Bath":{"stock":5,"reorder":1,"orderQty":5},"Warehouse":{"stock":5,"reorder":1,"orderQty":5}}},{"name":"Fresh Yeast","cat":"Ingredients","archived":false,"locations":{"Sandymount":{"stock":5,"reorder":1,"orderQty":5},"Dalkey":{"stock":5,"reorder":1,"orderQty":5},"Bath":{"stock":5,"reorder":1,"orderQty":5},"Warehouse":{"stock":5,"reorder":1,"orderQty":5}}},{"name":"Goats Cheese","cat":"Ingredients","archived":false,"locations":{"Sandymount":{"stock":5,"reorder":1,"orderQty":5},"Dalkey":{"stock":5,"reorder":1,"orderQty":5},"Bath":{"stock":5,"reorder":1,"orderQty":5},"Warehouse":{"stock":5,"reorder":1,"orderQty":5}}},{"name":"Golden Syrup","cat":"Ingredients","archived":false,"locations":{"Sandymount":{"stock":5,"reorder":1,"orderQty":5},"Dalkey":{"stock":5,"reorder":1,"orderQty":5},"Bath":{"stock":5,"reorder":1,"orderQty":5},"Warehouse":{"stock":5,"reorder":1,"orderQty":5}}},{"name":"Granola","cat":"Ingredients","archived":false,"locations":{"Sandymount":{"stock":5,"reorder":1,"orderQty":5},"Dalkey":{"stock":5,"reorder":1,"orderQty":5},"Bath":{"stock":5,"reorder":1,"orderQty":5},"Warehouse":{"stock":5,"reorder":1,"orderQty":5}}},{"name":"Granola Insert","cat":"Supplies","archived":false,"locations":{"Sandymount":{"stock":5,"reorder":1,"orderQty":5},"Dalkey":{"stock":5,"reorder":1,"orderQty":5},"Bath":{"stock":5,"reorder":1,"orderQty":5},"Warehouse":{"stock":5,"reorder":1,"orderQty":5}}},{"name":"Granola Label","cat":"Supplies","archived":false,"locations":{"Sandymount":{"stock":5,"reorder":1,"orderQty":5},"Dalkey":{"stock":5,"reorder":1,"orderQty":5},"Bath":{"stock":5,"reorder":1,"orderQty":5},"Warehouse":{"stock":5,"reorder":1,"orderQty":5}}},{"name":"Granola Lid","cat":"Supplies","archived":false,"locations":{"Sandymount":{"stock":5,"reorder":1,"orderQty":5},"Dalkey":{"stock":5,"reorder":1,"orderQty":5},"Bath":{"stock":5,"reorder":1,"orderQty":5},"Warehouse":{"stock":5,"reorder":1,"orderQty":5}}},{"name":"Granola Pot","cat":"Supplies","archived":false,"locations":{"Sandymount":{"stock":5,"reorder":1,"orderQty":5},"Dalkey":{"stock":5,"reorder":1,"orderQty":5},"Bath":{"stock":5,"reorder":1,"orderQty":5},"Warehouse":{"stock":5,"reorder":1,"orderQty":5}}},{"name":"Grated Carrot","cat":"Ingredients","archived":false,"locations":{"Sandymount":{"stock":5,"reorder":1,"orderQty":5},"Dalkey":{"stock":5,"reorder":1,"orderQty":5},"Bath":{"stock":5,"reorder":1,"orderQty":5},"Warehouse":{"stock":5,"reorder":1,"orderQty":5}}},{"name":"Grated Emmental","cat":"Ingredients","archived":false,"locations":{"Sandymount":{"stock":5,"reorder":1,"orderQty":5},"Dalkey":{"stock":5,"reorder":1,"orderQty":5},"Bath":{"stock":5,"reorder":1,"orderQty":5},"Warehouse":{"stock":5,"reorder":1,"orderQty":5}}},{"name":"Grease Spray","cat":"Ingredients","archived":false,"locations":{"Sandymount":{"stock":5,"reorder":1,"orderQty":5},"Dalkey":{"stock":5,"reorder":1,"orderQty":5},"Bath":{"stock":5,"reorder":1,"orderQty":5},"Warehouse":{"stock":5,"reorder":1,"orderQty":5}}},{"name":"Greek Yogurt","cat":"Ingredients","archived":false,"locations":{"Sandymount":{"stock":5,"reorder":1,"orderQty":5},"Dalkey":{"stock":5,"reorder":1,"orderQty":5},"Bath":{"stock":5,"reorder":1,"orderQty":5},"Warehouse":{"stock":5,"reorder":1,"orderQty":5}}},{"name":"Green Cloth","cat":"Supplies","archived":false,"locations":{"Sandymount":{"stock":5,"reorder":1,"orderQty":5},"Dalkey":{"stock":5,"reorder":1,"orderQty":5},"Bath":{"stock":5,"reorder":1,"orderQty":5},"Warehouse":{"stock":5,"reorder":1,"orderQty":5}}},{"name":"Green Food Bin Bags","cat":"Supplies","archived":false,"locations":{"Sandymount":{"stock":5,"reorder":1,"orderQty":5},"Dalkey":{"stock":5,"reorder":1,"orderQty":5},"Bath":{"stock":5,"reorder":1,"orderQty":5},"Warehouse":{"stock":5,"reorder":1,"orderQty":5}}},{"name":"Green Mop Heads","cat":"Supplies","archived":false,"locations":{"Sandymount":{"stock":5,"reorder":1,"orderQty":5},"Dalkey":{"stock":5,"reorder":1,"orderQty":5},"Bath":{"stock":5,"reorder":1,"orderQty":5},"Warehouse":{"stock":5,"reorder":1,"orderQty":5}}},{"name":"Green Sponge","cat":"Supplies","archived":false,"locations":{"Sandymount":{"stock":5,"reorder":1,"orderQty":5},"Dalkey":{"stock":5,"reorder":1,"orderQty":5},"Bath":{"stock":5,"reorder":1,"orderQty":5},"Warehouse":{"stock":5,"reorder":1,"orderQty":5}}},{"name":"Guitar Sheets","cat":"Supplies","archived":false,"locations":{"Sandymount":{"stock":5,"reorder":1,"orderQty":5},"Dalkey":{"stock":5,"reorder":1,"orderQty":5},"Bath":{"stock":5,"reorder":1,"orderQty":5},"Warehouse":{"stock":5,"reorder":1,"orderQty":5}}},{"name":"Ham","cat":"Ingredients","archived":false,"locations":{"Sandymount":{"stock":5,"reorder":1,"orderQty":5},"Dalkey":{"stock":5,"reorder":1,"orderQty":5},"Bath":{"stock":5,"reorder":1,"orderQty":5},"Warehouse":{"stock":5,"reorder":1,"orderQty":5}}},{"name":"Handwash","cat":"Supplies","archived":false,"locations":{"Sandymount":{"stock":5,"reorder":1,"orderQty":5},"Dalkey":{"stock":5,"reorder":1,"orderQty":5},"Bath":{"stock":5,"reorder":1,"orderQty":5},"Warehouse":{"stock":5,"reorder":1,"orderQty":5}}},{"name":"Honey","cat":"Ingredients","archived":false,"locations":{"Sandymount":{"stock":5,"reorder":1,"orderQty":5},"Dalkey":{"stock":5,"reorder":1,"orderQty":5},"Bath":{"stock":5,"reorder":1,"orderQty":5},"Warehouse":{"stock":5,"reorder":1,"orderQty":5}}},{"name":"Icing Sugar","cat":"Ingredients","archived":false,"locations":{"Sandymount":{"stock":5,"reorder":1,"orderQty":5},"Dalkey":{"stock":5,"reorder":1,"orderQty":5},"Bath":{"stock":5,"reorder":1,"orderQty":5},"Warehouse":{"stock":5,"reorder":1,"orderQty":5}}},{"name":"Jalapenos","cat":"Ingredients","archived":false,"locations":{"Sandymount":{"stock":5,"reorder":1,"orderQty":5},"Dalkey":{"stock":5,"reorder":1,"orderQty":5},"Bath":{"stock":5,"reorder":1,"orderQty":5},"Warehouse":{"stock":5,"reorder":1,"orderQty":5}}},{"name":"Lamination Butter","cat":"Ingredients","archived":false,"locations":{"Sandymount":{"stock":5,"reorder":1,"orderQty":5},"Dalkey":{"stock":5,"reorder":1,"orderQty":5},"Bath":{"stock":5,"reorder":1,"orderQty":5},"Warehouse":{"stock":5,"reorder":1,"orderQty":5}}},{"name":"Lemon Cake","cat":"Ingredients","archived":false,"locations":{"Sandymount":{"stock":5,"reorder":1,"orderQty":5},"Dalkey":{"stock":5,"reorder":1,"orderQty":5},"Bath":{"stock":5,"reorder":1,"orderQty":5},"Warehouse":{"stock":5,"reorder":1,"orderQty":5}}},{"name":"Lemon Juice","cat":"Ingredients","archived":false,"locations":{"Sandymount":{"stock":5,"reorder":1,"orderQty":5},"Dalkey":{"stock":5,"reorder":1,"orderQty":5},"Bath":{"stock":5,"reorder":1,"orderQty":5},"Warehouse":{"stock":5,"reorder":1,"orderQty":5}}},{"name":"Lemons","cat":"Ingredients","archived":false,"locations":{"Sandymount":{"stock":5,"reorder":1,"orderQty":5},"Dalkey":{"stock":5,"reorder":1,"orderQty":5},"Bath":{"stock":5,"reorder":1,"orderQty":5},"Warehouse":{"stock":5,"reorder":1,"orderQty":5}}},{"name":"Madaines","cat":"Ingredients","archived":false,"locations":{"Sandymount":{"stock":5,"reorder":1,"orderQty":5},"Dalkey":{"stock":5,"reorder":1,"orderQty":5},"Bath":{"stock":5,"reorder":1,"orderQty":5},"Warehouse":{"stock":5,"reorder":1,"orderQty":5}}},{"name":"Maldon Salt","cat":"Ingredients","archived":false,"locations":{"Sandymount":{"stock":5,"reorder":1,"orderQty":5},"Dalkey":{"stock":5,"reorder":1,"orderQty":5},"Bath":{"stock":5,"reorder":1,"orderQty":5},"Warehouse":{"stock":5,"reorder":1,"orderQty":5}}},{"name":"Malt Syrup","cat":"Ingredients","archived":false,"locations":{"Sandymount":{"stock":5,"reorder":1,"orderQty":5},"Dalkey":{"stock":5,"reorder":1,"orderQty":5},"Bath":{"stock":5,"reorder":1,"orderQty":5},"Warehouse":{"stock":5,"reorder":1,"orderQty":5}}},{"name":"Maple Syrup","cat":"Ingredients","archived":false,"locations":{"Sandymount":{"stock":5,"reorder":1,"orderQty":5},"Dalkey":{"stock":5,"reorder":1,"orderQty":5},"Bath":{"stock":5,"reorder":1,"orderQty":5},"Warehouse":{"stock":5,"reorder":1,"orderQty":5}}},{"name":"Marble Cake","cat":"Ingredients","archived":false,"locations":{"Sandymount":{"stock":5,"reorder":1,"orderQty":5},"Dalkey":{"stock":5,"reorder":1,"orderQty":5},"Bath":{"stock":5,"reorder":1,"orderQty":5},"Warehouse":{"stock":5,"reorder":1,"orderQty":5}}},{"name":"Mascarpone","cat":"Ingredients","archived":false,"locations":{"Sandymount":{"stock":5,"reorder":1,"orderQty":5},"Dalkey":{"stock":5,"reorder":1,"orderQty":5},"Bath":{"stock":5,"reorder":1,"orderQty":5},"Warehouse":{"stock":5,"reorder":1,"orderQty":5}}},{"name":"Mellibio Improver","cat":"Ingredients","archived":false,"locations":{"Sandymount":{"stock":5,"reorder":1,"orderQty":5},"Dalkey":{"stock":5,"reorder":1,"orderQty":5},"Bath":{"stock":5,"reorder":1,"orderQty":5},"Warehouse":{"stock":5,"reorder":1,"orderQty":5}}},{"name":"Metal Scrub","cat":"Supplies","archived":false,"locations":{"Sandymount":{"stock":5,"reorder":1,"orderQty":5},"Dalkey":{"stock":5,"reorder":1,"orderQty":5},"Bath":{"stock":5,"reorder":1,"orderQty":5},"Warehouse":{"stock":5,"reorder":1,"orderQty":5}}},{"name":"Mixed Berries Frozen","cat":"Ingredients","archived":false,"locations":{"Sandymount":{"stock":5,"reorder":1,"orderQty":5},"Dalkey":{"stock":5,"reorder":1,"orderQty":5},"Bath":{"stock":5,"reorder":1,"orderQty":5},"Warehouse":{"stock":5,"reorder":1,"orderQty":5}}},{"name":"Mixed Herb","cat":"Ingredients","archived":false,"locations":{"Sandymount":{"stock":5,"reorder":1,"orderQty":5},"Dalkey":{"stock":5,"reorder":1,"orderQty":5},"Bath":{"stock":5,"reorder":1,"orderQty":5},"Warehouse":{"stock":5,"reorder":1,"orderQty":5}}},{"name":"Mixed Seed","cat":"Ingredients","archived":false,"locations":{"Sandymount":{"stock":5,"reorder":1,"orderQty":5},"Dalkey":{"stock":5,"reorder":1,"orderQty":5},"Bath":{"stock":5,"reorder":1,"orderQty":5},"Warehouse":{"stock":5,"reorder":1,"orderQty":5}}},{"name":"Moring bun","cat":"Ingredients","archived":false,"locations":{"Sandymount":{"stock":5,"reorder":1,"orderQty":5},"Dalkey":{"stock":5,"reorder":1,"orderQty":5},"Bath":{"stock":5,"reorder":1,"orderQty":5},"Warehouse":{"stock":5,"reorder":1,"orderQty":5}}},{"name":"Mozzarella","cat":"Ingredients","archived":false,"locations":{"Sandymount":{"stock":5,"reorder":1,"orderQty":5},"Dalkey":{"stock":5,"reorder":1,"orderQty":5},"Bath":{"stock":5,"reorder":1,"orderQty":5},"Warehouse":{"stock":5,"reorder":1,"orderQty":5}}},{"name":"Oats","cat":"Ingredients","archived":false,"locations":{"Sandymount":{"stock":5,"reorder":1,"orderQty":5},"Dalkey":{"stock":5,"reorder":1,"orderQty":5},"Bath":{"stock":5,"reorder":1,"orderQty":5},"Warehouse":{"stock":5,"reorder":1,"orderQty":5}}},{"name":"Olive Oil","cat":"Ingredients","archived":false,"locations":{"Sandymount":{"stock":5,"reorder":1,"orderQty":5},"Dalkey":{"stock":5,"reorder":1,"orderQty":5},"Bath":{"stock":5,"reorder":1,"orderQty":5},"Warehouse":{"stock":5,"reorder":1,"orderQty":5}}},{"name":"Pain au chocolat","cat":"Ingredients","archived":false,"locations":{"Sandymount":{"stock":5,"reorder":1,"orderQty":5},"Dalkey":{"stock":5,"reorder":1,"orderQty":5},"Bath":{"stock":5,"reorder":1,"orderQty":5},"Warehouse":{"stock":5,"reorder":1,"orderQty":5}}},{"name":"Parchment Paper","cat":"Supplies","archived":false,"locations":{"Sandymount":{"stock":5,"reorder":1,"orderQty":5},"Dalkey":{"stock":5,"reorder":1,"orderQty":5},"Bath":{"stock":5,"reorder":1,"orderQty":5},"Warehouse":{"stock":5,"reorder":1,"orderQty":5}}},{"name":"Parmesan","cat":"Ingredients","archived":false,"locations":{"Sandymount":{"stock":5,"reorder":1,"orderQty":5},"Dalkey":{"stock":5,"reorder":1,"orderQty":5},"Bath":{"stock":5,"reorder":1,"orderQty":5},"Warehouse":{"stock":5,"reorder":1,"orderQty":5}}},{"name":"Peacan Danish","cat":"Ingredients","archived":false,"locations":{"Sandymount":{"stock":5,"reorder":1,"orderQty":5},"Dalkey":{"stock":5,"reorder":1,"orderQty":5},"Bath":{"stock":5,"reorder":1,"orderQty":5},"Warehouse":{"stock":5,"reorder":1,"orderQty":5}}},{"name":"Pecan Glaze","cat":"Ingredients","archived":false,"locations":{"Sandymount":{"stock":5,"reorder":1,"orderQty":5},"Dalkey":{"stock":5,"reorder":1,"orderQty":5},"Bath":{"stock":5,"reorder":1,"orderQty":5},"Warehouse":{"stock":5,"reorder":1,"orderQty":5}}},{"name":"Pecans","cat":"Ingredients","archived":false,"locations":{"Sandymount":{"stock":5,"reorder":1,"orderQty":5},"Dalkey":{"stock":5,"reorder":1,"orderQty":5},"Bath":{"stock":5,"reorder":1,"orderQty":5},"Warehouse":{"stock":5,"reorder":1,"orderQty":5}}},{"name":"Pepperoni","cat":"Ingredients","archived":false,"locations":{"Sandymount":{"stock":5,"reorder":1,"orderQty":5},"Dalkey":{"stock":5,"reorder":1,"orderQty":5},"Bath":{"stock":5,"reorder":1,"orderQty":5},"Warehouse":{"stock":5,"reorder":1,"orderQty":5}}},{"name":"Philadelphia","cat":"Ingredients","archived":false,"locations":{"Sandymount":{"stock":5,"reorder":1,"orderQty":5},"Dalkey":{"stock":5,"reorder":1,"orderQty":5},"Bath":{"stock":5,"reorder":1,"orderQty":5},"Warehouse":{"stock":5,"reorder":1,"orderQty":5}}},{"name":"Piping Bags","cat":"Supplies","archived":false,"locations":{"Sandymount":{"stock":5,"reorder":1,"orderQty":5},"Dalkey":{"stock":5,"reorder":1,"orderQty":5},"Bath":{"stock":5,"reorder":1,"orderQty":5},"Warehouse":{"stock":5,"reorder":1,"orderQty":5}}},{"name":"Plain Croissant","cat":"Ingredients","archived":false,"locations":{"Sandymount":{"stock":5,"reorder":1,"orderQty":5},"Dalkey":{"stock":5,"reorder":1,"orderQty":5},"Bath":{"stock":5,"reorder":1,"orderQty":5},"Warehouse":{"stock":5,"reorder":1,"orderQty":5}}},{"name":"Poppy Seeds","cat":"Ingredients","archived":false,"locations":{"Sandymount":{"stock":5,"reorder":1,"orderQty":5},"Dalkey":{"stock":5,"reorder":1,"orderQty":5},"Bath":{"stock":5,"reorder":1,"orderQty":5},"Warehouse":{"stock":5,"reorder":1,"orderQty":5}}},{"name":"Porridge Oats","cat":"Ingredients","archived":false,"locations":{"Sandymount":{"stock":5,"reorder":1,"orderQty":5},"Dalkey":{"stock":5,"reorder":1,"orderQty":5},"Bath":{"stock":5,"reorder":1,"orderQty":5},"Warehouse":{"stock":5,"reorder":1,"orderQty":5}}},{"name":"Pumpkin Seeds","cat":"Ingredients","archived":false,"locations":{"Sandymount":{"stock":5,"reorder":1,"orderQty":5},"Dalkey":{"stock":5,"reorder":1,"orderQty":5},"Bath":{"stock":5,"reorder":1,"orderQty":5},"Warehouse":{"stock":5,"reorder":1,"orderQty":5}}},{"name":"Raspberry Jam","cat":"Ingredients","archived":false,"locations":{"Sandymount":{"stock":5,"reorder":1,"orderQty":5},"Dalkey":{"stock":5,"reorder":1,"orderQty":5},"Bath":{"stock":5,"reorder":1,"orderQty":5},"Warehouse":{"stock":5,"reorder":1,"orderQty":5}}},{"name":"Red Cheddar","cat":"Ingredients","archived":false,"locations":{"Sandymount":{"stock":5,"reorder":1,"orderQty":5},"Dalkey":{"stock":5,"reorder":1,"orderQty":5},"Bath":{"stock":5,"reorder":1,"orderQty":5},"Warehouse":{"stock":5,"reorder":1,"orderQty":5}}},{"name":"Red Onion","cat":"Ingredients","archived":false,"locations":{"Sandymount":{"stock":5,"reorder":1,"orderQty":5},"Dalkey":{"stock":5,"reorder":1,"orderQty":5},"Bath":{"stock":5,"reorder":1,"orderQty":5},"Warehouse":{"stock":5,"reorder":1,"orderQty":5}}},{"name":"Rice Flour","cat":"Ingredients","archived":false,"locations":{"Sandymount":{"stock":5,"reorder":1,"orderQty":5},"Dalkey":{"stock":5,"reorder":1,"orderQty":5},"Bath":{"stock":5,"reorder":1,"orderQty":5},"Warehouse":{"stock":5,"reorder":1,"orderQty":5}}},{"name":"Rosemary","cat":"Ingredients","archived":false,"locations":{"Sandymount":{"stock":5,"reorder":1,"orderQty":5},"Dalkey":{"stock":5,"reorder":1,"orderQty":5},"Bath":{"stock":5,"reorder":1,"orderQty":5},"Warehouse":{"stock":5,"reorder":1,"orderQty":5}}},{"name":"Sea Salt","cat":"Ingredients","archived":false,"locations":{"Sandymount":{"stock":5,"reorder":1,"orderQty":5},"Dalkey":{"stock":5,"reorder":1,"orderQty":5},"Bath":{"stock":5,"reorder":1,"orderQty":5},"Warehouse":{"stock":5,"reorder":1,"orderQty":5}}},{"name":"Sesame Seed","cat":"Ingredients","archived":false,"locations":{"Sandymount":{"stock":5,"reorder":1,"orderQty":5},"Dalkey":{"stock":5,"reorder":1,"orderQty":5},"Bath":{"stock":5,"reorder":1,"orderQty":5},"Warehouse":{"stock":5,"reorder":1,"orderQty":5}}},{"name":"Sliced Emmental","cat":"Ingredients","archived":false,"locations":{"Sandymount":{"stock":5,"reorder":1,"orderQty":5},"Dalkey":{"stock":5,"reorder":1,"orderQty":5},"Bath":{"stock":5,"reorder":1,"orderQty":5},"Warehouse":{"stock":5,"reorder":1,"orderQty":5}}},{"name":"Soft Brown Sugar","cat":"Ingredients","archived":false,"locations":{"Sandymount":{"stock":5,"reorder":1,"orderQty":5},"Dalkey":{"stock":5,"reorder":1,"orderQty":5},"Bath":{"stock":5,"reorder":1,"orderQty":5},"Warehouse":{"stock":5,"reorder":1,"orderQty":5}}},{"name":"Strawberries","cat":"Ingredients","archived":false,"locations":{"Sandymount":{"stock":5,"reorder":1,"orderQty":5},"Dalkey":{"stock":5,"reorder":1,"orderQty":5},"Bath":{"stock":5,"reorder":1,"orderQty":5},"Warehouse":{"stock":5,"reorder":1,"orderQty":5}}},{"name":"Sugar Syrup","cat":"Ingredients","archived":false,"locations":{"Sandymount":{"stock":5,"reorder":1,"orderQty":5},"Dalkey":{"stock":5,"reorder":1,"orderQty":5},"Bath":{"stock":5,"reorder":1,"orderQty":5},"Warehouse":{"stock":5,"reorder":1,"orderQty":5}}},{"name":"Swiss","cat":"Ingredients","archived":false,"locations":{"Sandymount":{"stock":5,"reorder":1,"orderQty":5},"Dalkey":{"stock":5,"reorder":1,"orderQty":5},"Bath":{"stock":5,"reorder":1,"orderQty":5},"Warehouse":{"stock":5,"reorder":1,"orderQty":5}}},{"name":"Thyme","cat":"Ingredients","archived":false,"locations":{"Sandymount":{"stock":5,"reorder":1,"orderQty":5},"Dalkey":{"stock":5,"reorder":1,"orderQty":5},"Bath":{"stock":5,"reorder":1,"orderQty":5},"Warehouse":{"stock":5,"reorder":1,"orderQty":5}}},{"name":"Tomato Sauce","cat":"Ingredients","archived":false,"locations":{"Sandymount":{"stock":5,"reorder":1,"orderQty":5},"Dalkey":{"stock":5,"reorder":1,"orderQty":5},"Bath":{"stock":5,"reorder":1,"orderQty":5},"Warehouse":{"stock":5,"reorder":1,"orderQty":5}}},{"name":"Unsalted Butter","cat":"Ingredients","archived":false,"locations":{"Sandymount":{"stock":5,"reorder":1,"orderQty":5},"Dalkey":{"stock":5,"reorder":1,"orderQty":5},"Bath":{"stock":5,"reorder":1,"orderQty":5},"Warehouse":{"stock":5,"reorder":1,"orderQty":5}}},{"name":"Whole Egg","cat":"Ingredients","archived":false,"locations":{"Sandymount":{"stock":5,"reorder":1,"orderQty":5},"Dalkey":{"stock":5,"reorder":1,"orderQty":5},"Bath":{"stock":5,"reorder":1,"orderQty":5},"Warehouse":{"stock":5,"reorder":1,"orderQty":5}}},{"name":"Wire Sponge","cat":"Supplies","archived":false,"locations":{"Sandymount":{"stock":5,"reorder":1,"orderQty":5},"Dalkey":{"stock":5,"reorder":1,"orderQty":5},"Bath":{"stock":5,"reorder":1,"orderQty":5},"Warehouse":{"stock":5,"reorder":1,"orderQty":5}}},{"name":"Yellow Cloth","cat":"Supplies","archived":false,"locations":{"Sandymount":{"stock":5,"reorder":1,"orderQty":5},"Dalkey":{"stock":5,"reorder":1,"orderQty":5},"Bath":{"stock":5,"reorder":1,"orderQty":5},"Warehouse":{"stock":5,"reorder":1,"orderQty":5}}}];
+const locations=["Sandymount", "Dalkey", "Bath", "Warehouse"];
+let cat="all";
+const frozenPastryNames=["Plain Croissant", "Pain au chocolat", "Swiss", "Pecans", "Babka", "Moring bun"];
+data.forEach(p=>{if(frozenPastryNames.includes(p.name))p.cat="Frozen Pastry";});
+let logs=[];
+let editingItemName="";
+let announcements=[
+  ["🔴","Butter delivery","Butter delivery is delayed until Monday.","Manager"],
+  ["🟡","Closing reminder","Please check paper bags before closing.","Manager"]
+];
+
+const $=id=>document.getElementById(id);
+const currentLocation=()=>$("loc").value;
+const currentStaff=()=>$("staff").value;
+const esc=s=>String(s).replaceAll("&","&amp;").replaceAll("<","&lt;").replaceAll(">","&gt;").replaceAll('"',"&quot;").replaceAll("'","&#39;");
+const itemByName=n=>data.find(p=>p.name===n);
+const settings=p=>p.locations[currentLocation()];
+
+locations.forEach(l=>{const o=document.createElement("option");o.value=l;o.textContent=l;$("loc").appendChild(o);});
+
+function status(p){
+  const s=settings(p);
+  if(s.reorder>0 && s.stock<=s.reorder) return ["out","Order"];
+  if(s.reorder>0 && s.stock<=s.reorder*1.5) return ["low","Low"];
+  return ["ok","OK"];
+}
+function render(){
+  const q=($("search")?.value||"").toLowerCase().trim();
+  const arr=data.filter(p=>{
+    if(p.archived)return false;
+    const s=settings(p);
+    const catOK=cat==="all"||p.cat===cat||(cat==="Order"&&s.reorder>0&&s.stock<=s.reorder);
+    return catOK&&p.name.toLowerCase().includes(q);
+  });
+  $("list").innerHTML=arr.map(p=>{
+    const s=settings(p),z=status(p);
+    return `<div class="card">
+      <div class="item" onclick='editItem(${JSON.stringify(p.name)})'>
+        <div><div class="name">${esc(p.name)}</div><div class="meta">${p.cat} · Reorder ${s.reorder} Unit · Order ${s.orderQty} Unit</div></div>
+        <div style="text-align:right"><div class="stock">${s.stock} Unit</div><span class="badge ${z[0]}">${z[1]}</span></div>
+      </div>
+      <div class="controls">
+        <button onclick='changeStock(${JSON.stringify(p.name)},-1)'>−1</button>
+        <button onclick='setQuantity(${JSON.stringify(p.name)})'>Set quantity</button>
+        <button onclick='changeStock(${JSON.stringify(p.name)},1)'>＋1</button>
+      </div>
+    </div>`;
+  }).join("")||'<div class="meta">No items found.</div>';
+
+  $("where").textContent=currentLocation();
+  const orders=data.filter(p=>!p.archived&&settings(p).reorder>0&&settings(p).stock<=settings(p).reorder);
+  const lows=data.filter(p=>!p.archived&&settings(p).reorder>0&&settings(p).stock>settings(p).reorder&&settings(p).stock<=settings(p).reorder*1.5);
+  $("ordersN").textContent=orders.length;$("lowN").textContent=lows.length;
+
+  $("orderList").innerHTML=orders.length?orders.map(p=>{
+    const s=settings(p);
+    return `<div class="card"><b>${esc(p.name)}</b><div class="meta">${s.stock} Unit now · Reorder ${s.reorder} Unit · Order ${s.orderQty} Unit</div><button onclick="markOrdered('${esc(p.name)}')">Ordered</button></div>`;
+  }).join(""):'<div class="meta">No items need ordering.</div>';
+
+  $("ann").innerHTML=announcements.map(a=>`<div class="notice"><b>${a[0]} ${esc(a[1])}</b><div style="margin-top:7px">${esc(a[2])}</div><div class="meta">Posted by ${esc(a[3])}</div></div>`).join("");
+  $("hist").innerHTML=logs.length?logs.map(x=>`<div class="card">${esc(x)}</div>`).join(""):'<div class="meta">No history yet.</div>';
+}
+function changeStock(n,d){
+  const p=itemByName(n),s=settings(p),old=s.stock;
+  s.stock=Math.max(0,s.stock+d);
+  logs.unshift(`${currentStaff()} · ${currentLocation()} · ${n} · ${old} Unit → ${s.stock} Unit`);
+  render();
+}
+function setQuantity(n){
+  const p=itemByName(n),s=settings(p),v=prompt("Set quantity for "+n+" at "+currentLocation(),s.stock);
+  if(v===null)return;
+  const num=Number(v);
+  if(!Number.isFinite(num)||num<0)return alert("Enter a valid quantity.");
+  const old=s.stock;s.stock=num;
+  logs.unshift(`${currentStaff()} · ${currentLocation()} · ${n} · ${old} Unit → ${num} Unit`);
+  render();
+}
+function editItem(n){
+  const p=itemByName(n);
+  if(!p)return;
+  editingItemName=n;
+  const s=settings(p);
+  openM("Item Settings — "+n,`
+    <div class="meta">Location: <b>${currentLocation()}</b></div>
+    <label>Current stock<input id="es" type="number" min="0" value="${s.stock}"></label>
+    <label>Reorder level<input id="er" type="number" min="0" value="${s.reorder}"></label>
+    <label>Order quantity<input id="eo" type="number" min="0" value="${s.orderQty}"></label>
+    <button type="button" class="primary" onclick="saveCurrentItem()">Save Settings</button>
+    <button type="button" class="danger" onclick="archiveCurrentItem()">🗄️ Archive Item</button>`);
+}
+function saveCurrentItem(){
+  if(editingItemName)saveItem(editingItemName);
+}
+function archiveCurrentItem(){
+  const n=editingItemName;
+  if(!n)return alert("No item selected.");
+  const p=itemByName(n);
+  if(!p)return alert("Item not found.");
+  if(!confirm("Archive "+n+"? It will be hidden from normal inventory but kept in the records."))return;
+  p.archived=true;
+  logs.unshift(`${currentStaff()} · ${currentLocation()} · Archived · ${n}`);
+  editingItemName="";
+  closeM();
+  render();
+}
+function saveItem(n){
+  const p=itemByName(n),s=settings(p);
+  s.stock=Math.max(0,Number($("es").value)||0);
+  s.reorder=Math.max(0,Number($("er").value)||0);
+  s.orderQty=Math.max(0,Number($("eo").value)||0);
+  logs.unshift(`${currentStaff()} · ${currentLocation()} · Updated settings · ${n}`);
+  closeM();render();
+}
+function showArchiveConfirm(n){
+  const p=itemByName(n);
+  if(!p)return alert("Item not found.");
+  openM("Archive Item",`
+    <div class="card">
+      <b>${esc(n)}</b>
+      <div class="meta" style="margin-top:6px">
+        This will hide the item from normal Inventory and Orders, but keep its records.
+      </div>
+    </div>
+    <button id="confirmArchiveBtn" class="danger">Yes, Archive Item</button>
+    <button style="width:100%;margin-top:8px" onclick="closeM()">Cancel</button>`);
+  $("confirmArchiveBtn").onclick=()=>confirmArchive(n);
+}
+function confirmArchive(n){
+  const p=itemByName(n);
+  if(!p)return alert("Item not found.");
+  p.archived=true;
+  logs.unshift(`${currentStaff()} · ${currentLocation()} · Archived · ${n}`);
+  closeM();
+  render();
+  alert(n+" has been archived.");
+}
+function archivedForm(){
+  const a=data.filter(p=>p.archived);
+  openM("Archived Items",a.length?a.map(p=>`<div class="card"><b>${esc(p.name)}</b><div class="meta">${p.cat}</div><button onclick='restoreItem(${JSON.stringify(p.name)})'>Restore</button></div>`).join(""):'<div class="meta">No archived items.</div>');
+}
+function restoreItem(n){
+  const p=itemByName(n);p.archived=false;
+  logs.unshift(`${currentStaff()} · Restored · ${n}`);closeM();render();
+}
+function setCat(c,b){
+  cat=c;document.querySelectorAll(".tab").forEach(x=>x.classList.remove("active"));b.classList.add("active");render();
+}
+function show(id,b){
+  document.querySelectorAll("section").forEach(x=>x.classList.remove("show"));
+  $(id).classList.add("show");
+  document.querySelectorAll(".nav").forEach(x=>x.classList.remove("active"));b.classList.add("active");render();
+}
+function openM(t,b){$("mt").textContent=t;$("mb").innerHTML=b;$("modal").classList.add("show");}
+function closeM(){$("modal").classList.remove("show");}
+$("modal").addEventListener("click",e=>{if(e.target===$("modal"))closeM();});
+function markOrdered(n){logs.unshift(`${currentStaff()} · ${currentLocation()} · Marked ordered · ${n}`);alert("Marked as ordered.");render();}
+
+function itemForm(){
+  openM("Add Item",`
+    <label>Item name<input id="in"></label>
+    <label>Category<select id="ic"><option>Ingredients</option><option>Supplies</option></select></label>
+    <label>Current stock<input id="is" type="number" min="0" value="5"></label>
+    <label>Reorder level<input id="ir" type="number" min="0" value="1"></label>
+    <label>Order quantity<input id="io" type="number" min="0" value="5"></label>
+    <button class="primary" onclick="addItem()">Add Item</button>`);
+}
+function addItem(){
+  const n=$("in").value.trim();
+  if(!n)return alert("Enter an item name.");
+  if(itemByName(n))return alert("Item already exists.");
+  const p={name:n,cat:$("ic").value,archived:false,locations:{}};
+  locations.forEach(l=>p.locations[l]={stock:5,reorder:1,orderQty:5});
+  p.locations[currentLocation()]={stock:Math.max(0,Number($("is").value)||0),reorder:Math.max(0,Number($("ir").value)||0),orderQty:Math.max(0,Number($("io").value)||0)};
+  data.push(p);logs.unshift(`${currentStaff()} · Added item · ${n}`);closeM();render();
+}
+function announcementForm(){
+  openM("Add Announcement",`
+    <label>Title<input id="an"></label><label>Message<textarea id="am"></textarea></label>
+    <label>Priority<select id="ap"><option>Normal</option><option>Important</option></select></label>
+    <button class="primary" onclick="postAnnouncement()">Post Announcement</button>`);
+}
+function postAnnouncement(){
+  const t=$("an").value.trim(),m=$("am").value.trim();
+  if(!t||!m)return alert("Enter a title and message.");
+  announcements.unshift([$("ap").value==="Important"?"🔴":"🟡",t,m,currentStaff()]);closeM();render();
+}
+function staffForm(){
+  openM("Add Staff",`<label>Staff name<input id="sn"></label><button class="primary" onclick="addStaff()">Add Staff</button>`);
+}
+function addStaff(){
+  const n=$("sn").value.trim();if(!n)return;
+  const exists=[...$("staff").options].some(o=>o.value===n);
+  if(!exists){const o=document.createElement("option");o.value=n;o.textContent=n;$("staff").appendChild(o);}
+  $("staff").value=n;closeM();
+}
+function transferForm(){
+  const opts=data.filter(p=>!p.archived).map(p=>`<option value="${esc(p.name)}">${esc(p.name)}</option>`).join("");
+  openM("Record Stock Transfer",`
+    <label>Item<select id="ti">${opts}</select></label>
+    <label>From<select id="tf">${locations.map(x=>`<option>${x}</option>`).join("")}</select></label>
+    <label>To<select id="tt">${locations.map(x=>`<option>${x}</option>`).join("")}</select></label>
+    <label>Quantity<input id="tq" type="number" min="1" value="1"></label>
+    <button class="primary" onclick="transfer()">Record Transfer</button>`);
+}
+function transfer(){
+  const p=itemByName($("ti").value),from=$("tf").value,to=$("tt").value,q=Number($("tq").value);
+  if(from===to)return alert("Choose different locations.");
+  if(!Number.isFinite(q)||q<=0)return alert("Enter a valid quantity.");
+  if(p.locations[from].stock<q)return alert("Not enough stock at "+from+".");
+  p.locations[from].stock-=q;p.locations[to].stock+=q;
+  logs.unshift(`${currentStaff()} · Transfer · ${p.name} · ${q} Unit · ${from} → ${to}`);
+  closeM();render();
+}
+$("loc").onchange=()=>{cat="all";document.querySelectorAll(".tab").forEach((x,i)=>x.classList.toggle("active",i===0));render();};
+render();
+</script>
+</body>
+</html>
